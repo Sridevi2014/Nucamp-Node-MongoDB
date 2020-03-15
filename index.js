@@ -1,3 +1,4 @@
+//Node Callback Hell and Promises
 //mongodb node driver and communicate with mongodb server through it from a node application
 const MongoClient = require('mongodb').MongoClient; //mongodb nodejs driver imported from the mongoclient object
 const assert = require('assert').strict;
@@ -7,9 +8,8 @@ const url = 'mongodb://localhost:27017/'; //mongodb server
 const dbname = 'nucampsite';
 
 //mongoclient connect method  connect to mangodb server
-MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
+MongoClient.connect(url, { useUnifiedTopology: true }).then(client => {
 
-    assert.strictEqual(err, null);
 
     console.log('Connected correctly to server');
 
@@ -21,32 +21,37 @@ MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
         console.log('Dropped Collection', result);
 
 
-        //insert document
         dboper.insertDocument(db, { name: "Breadcrumb Trail Campground", description: "Test" },
-            'campsites', result => {
-                console.log('Insert Document:', result.ops);
+            'campsites')
+            .then(result => {
+                console.log('Insert Document:\n', result.ops);
 
-                dboper.findDocuments(db, 'campsites', docs => {
-                    console.log('Found Documents:', docs);
+                return dboper.findDocuments(db, 'campsites');
+            })
+            .then(docs => {
+                console.log('Found Documents:\n', docs);
 
-                    dboper.updateDocument(db, { name: "Breadcrumb Trail Campground" },
-                        { description: "Updated Test Description" }, 'campsites',
-                        result => {
-                            console.log('Updated Document Count:', result.result.nModified);
+                return dboper.updateDocument(db, { name: "Breadcrumb Trail Campground" },
+                    { description: "Updated Test" }, 'campsites');
 
-                            dboper.findDocuments(db, 'campsites', docs => {
-                                console.log('Found  Documents:', docs);
+            })
+            .then(result => {
+                console.log('Updated Document:\n', result.result);
 
-                                dboper.removeDocument(db, { name: "Breadcrumb Trail Campground" },
-                                    'campsites', result => {
-                                        console.log('Deleted Document Count:', result.deletedCount);
+                return dboper.findDocuments(db, 'campsites');
+            })
+            .then(docs => {
+                console.log('Found Updated Documents:\n', docs);
 
-                                        client.close(); // immediately close the client connection to the mangodb server
-                                    });
-                            });
-                        }
-                    );
-                });
-            });
+                return db.dropCollection('campsites');
+            })
+            .then(result => {
+                console.log('Dropped Collection:', result);
+
+                return client.close(); // immediately close the client connection to the mangodb server
+            })
+            .catch(err => console.log(err));
     });
-});
+
+})
+    .catch(err => console.log(err));
